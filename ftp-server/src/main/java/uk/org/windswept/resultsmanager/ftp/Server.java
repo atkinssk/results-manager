@@ -4,6 +4,7 @@ import org.apache.ftpserver.FtpServer;
 import org.apache.ftpserver.FtpServerFactory;
 import org.apache.ftpserver.ftplet.FtpException;
 import org.apache.ftpserver.ftplet.UserManager;
+import org.apache.ftpserver.listener.ListenerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -15,12 +16,11 @@ public class Server
     private static final Logger LOGGER = LoggerFactory.getLogger(Server.class);
 
     private final FtpServerFactory serverFactory;
-    private final FtpServer server;
+    private FtpServer server;
 
     public Server(FtpServerFactory serverFactory)
     {
         this.serverFactory = serverFactory;
-        server = serverFactory.createServer();
     }
 
     public Server()
@@ -28,11 +28,18 @@ public class Server
         this(new FtpServerFactory());
     }
 
-    public Server(UserManager userManager)
+    public Server withUserManager(UserManager userManager)
     {
-        serverFactory = new FtpServerFactory();
         serverFactory.setUserManager(userManager);
-        server = serverFactory.createServer();
+        return this;
+    }
+
+    public Server withPort(Integer port)
+    {
+        ListenerFactory listenerFactory = new ListenerFactory();
+        listenerFactory.setPort(port);
+        serverFactory.addListener("default", listenerFactory.createListener());
+        return this;
     }
 
     public void start() throws FtpException
@@ -40,6 +47,7 @@ public class Server
         LOGGER.info("Starting FTP server");
         try
         {
+            server = serverFactory.createServer();
             server.start();
         }
         catch (FtpException e)

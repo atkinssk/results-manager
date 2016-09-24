@@ -1,5 +1,6 @@
 package uk.org.windswept.resultsmanager.ftp;
 
+import com.google.common.base.Predicate;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.ftpserver.ftplet.Authentication;
@@ -20,11 +21,15 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileWriter;
 import java.net.InetAddress;
+import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 
+import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Lists.newArrayList;
 import static java.lang.Thread.sleep;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 
 /**
@@ -33,6 +38,7 @@ import static org.mockito.Mockito.mock;
 public class ServerTest
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(ServerTest.class);
+    public static final int PORT = 2222;
 
 
     @Test
@@ -53,18 +59,26 @@ public class ServerTest
 
         userManager.save(user);
 
-        Server server = new Server();
+        Server server = new Server().withUserManager(userManager).withPort(PORT);
         server.start();
 
-
-
         FTPClient client = new FTPClient();
-        client.connect(InetAddress.getLocalHost());
+        client.connect(InetAddress.getLocalHost(), PORT);
         client.login("test", "test");
-        FTPFile[] files = client.listFiles();
-        LOGGER.info("files:{}", newArrayList(files));
-        FTPFile[] directories = client.listDirectories();
-        LOGGER.info("directories:{}", newArrayList(directories));
+        List<FTPFile> ftpFiles = newArrayList(client.listFiles());
+        for (FTPFile file : ftpFiles )
+        {
+            LOGGER.info("{}", file);
+        }
+
+        Collection<FTPFile> files = filter(ftpFiles, new Predicate<FTPFile>(){
+            public boolean apply (FTPFile input)
+            {
+                return input.isFile();
+            }
+        });
+
+        assertThat(files.iterator().next().getName(), is("users.properties"));
 
         server.stop();
     }
