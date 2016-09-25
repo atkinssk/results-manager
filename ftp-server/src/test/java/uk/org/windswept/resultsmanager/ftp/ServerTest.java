@@ -13,6 +13,7 @@ import org.apache.ftpserver.usermanager.impl.BaseUser;
 import org.apache.ftpserver.usermanager.impl.WritePermission;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -49,6 +50,7 @@ public class ServerTest
     public static final File USER_HOME_DIRECTORY = FileUtils.getFile("target", "userWorkingDirectory");
 
     private Server server;
+    private LoggingFtplet loggingFtplet;
 
     private List<Authority> createAuthorities(Authority... authorities)
     {
@@ -80,7 +82,7 @@ public class ServerTest
     {
         UserManager userManager = createUserManager();
 
-        LoggingFtplet loggingFtplet = new LoggingFtplet();
+        loggingFtplet = new LoggingFtplet();
         server = new Server().withUserManager(userManager).withPort(PORT).withFtplet(loggingFtplet);
         server.start();
     }
@@ -90,8 +92,8 @@ public class ServerTest
     {
         if(!USER_HOME_DIRECTORY.exists())
         {
-            LOGGER.info("Create User Hoem Directory {}", USER_HOME_DIRECTORY);
-            assertThat("Unable to create user home directory", USER_HOME_DIRECTORY.mkdirs(), is(true));
+            LOGGER.info("Create User Home Directory {}", USER_HOME_DIRECTORY);
+            assertThat("Unable to create User Home Directory", USER_HOME_DIRECTORY.mkdirs(), is(true));
         }
         else
         {
@@ -180,6 +182,30 @@ public class ServerTest
         // Should be returned by the ftp server list command
         List<String> filenames = listFileName(client);
         assertThat(filenames, hasItem("results.html"));
+    }
+
+    @Test
+    @Ignore("This is only for investigation")
+    public void shouldWaitForDisconnect() throws InterruptedException
+    {
+        final Object done = new Object();
+        DisconnectCallback callback = new DisconnectCallback()
+        {
+            public void disconnect ()
+            {
+                synchronized (done)
+                {
+                    done.notify();
+                }
+            }
+        };
+        loggingFtplet.withDisconnectCallback(callback);
+
+        LOGGER.info("Waiting for disconnect callback");
+        synchronized(done)
+        {
+            done.wait();
+        }
     }
 
 }

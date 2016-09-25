@@ -13,6 +13,7 @@ import java.io.IOException;
 public class LoggingFtplet extends DefaultFtplet
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggingFtplet.class);
+    private DisconnectCallback disconnectCallback;
 
     public LoggingFtplet ()
     {
@@ -45,6 +46,7 @@ public class LoggingFtplet extends DefaultFtplet
     public FtpletResult onDisconnect (FtpSession session) throws FtpException, IOException
     {
         LOGGER.info("onDisconnect session:{}", new ToString(session));
+        disconnectCallback.disconnect();
         return super.onDisconnect(session);
     }
 
@@ -187,5 +189,11 @@ public class LoggingFtplet extends DefaultFtplet
     {
         LOGGER.info("onSite session:{} request:{}", new ToString(session), new ToString(request));
         return super.onSite(session, request);
+    }
+
+    public void withDisconnectCallback (DisconnectCallback disconnectCallback)
+    {
+        // TODO make this handle a list of callbacks
+        this.disconnectCallback = disconnectCallback;
     }
 }
