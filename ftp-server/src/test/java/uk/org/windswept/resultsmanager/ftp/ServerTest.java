@@ -2,6 +2,7 @@ package uk.org.windswept.resultsmanager.ftp;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
+import com.google.common.collect.Lists;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
 import org.apache.ftpserver.ftplet.Authentication;
@@ -15,6 +16,7 @@ import org.apache.ftpserver.usermanager.PropertiesUserManagerFactory;
 import org.apache.ftpserver.usermanager.UserManagerFactory;
 import org.apache.ftpserver.usermanager.impl.AbstractUserManager;
 import org.apache.ftpserver.usermanager.impl.BaseUser;
+import org.apache.ftpserver.usermanager.impl.WritePermission;
 import org.hamcrest.BaseMatcher;
 import org.hamcrest.Description;
 import org.hamcrest.Matcher;
@@ -38,10 +40,11 @@ import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Collections2.transform;
 import static java.lang.Thread.sleep;
-import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
+import static uk.org.windswept.test.FileExistsMatcher.fileExists;
 
 /**
  * Created by 802998369 on 20/09/2016.
@@ -54,6 +57,10 @@ public class ServerTest
 
     private Server server;
 
+    private List<Authority> createAuthorities(Authority... authorities)
+    {
+        return newArrayList(authorities);
+    }
 
     private UserManager createUserManager () throws IOException, FtpException
     {
@@ -69,6 +76,7 @@ public class ServerTest
         user.setName("test");
         user.setPassword("test");
         user.setHomeDirectory("target");
+        user.setAuthorities(createAuthorities(new WritePermission()));
 
         userManager.save(user);
         return userManager;
@@ -156,7 +164,6 @@ public class ServerTest
         URL resultsFile = getClass().getClassLoader().getResource("data/results.html");
         LOGGER.info("Loading results from {}", resultsFile);
         assertThat(client.storeFile(remote, resultsFile.openStream()), is(true));
-        // TODO need to do something around ftp server permissions to make this work
 
         // Should exist in target directory now
         File outputFile = new File("target", "results.html");
@@ -167,34 +174,4 @@ public class ServerTest
         assertThat(filenames, hasItem("results.html"));
     }
 
-    // TODO move this out into the common project
-    private Matcher<File> fileExists()
-    {
-        return new BaseMatcher<File>(){
-            public void describeTo(Description description)
-            {
-                description.appendText("Should exist and be a file");
-            }
-
-            @Override
-            public void describeMismatch(Object item, Description description)
-            {
-                File file = (File)item;
-                if (!file.exists())
-                {
-                    description.appendValue(file).appendText(" did not exist");
-                }
-                else if(!file.isFile())
-                {
-                    description.appendValue(file).appendText(" exists but is not a file");
-                }
-            }
-
-            public boolean matches(Object item)
-            {
-                File file = (File)item;
-                return file.exists() && file.isFile();
-            }
-        };
-    }
 }
