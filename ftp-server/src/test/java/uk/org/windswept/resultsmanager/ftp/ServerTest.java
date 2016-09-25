@@ -1,5 +1,6 @@
 package uk.org.windswept.resultsmanager.ftp;
 
+import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
@@ -14,6 +15,9 @@ import org.apache.ftpserver.usermanager.PropertiesUserManagerFactory;
 import org.apache.ftpserver.usermanager.UserManagerFactory;
 import org.apache.ftpserver.usermanager.impl.AbstractUserManager;
 import org.apache.ftpserver.usermanager.impl.BaseUser;
+import org.hamcrest.BaseMatcher;
+import org.hamcrest.Description;
+import org.hamcrest.Matcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -23,14 +27,18 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.InetAddress;
+import java.net.URL;
 import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 
 import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Lists.newArrayList;
+import static com.google.common.collect.Collections2.transform;
 import static java.lang.Thread.sleep;
+import static org.hamcrest.CoreMatchers.hasItem;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -82,12 +90,43 @@ public class ServerTest
         server.stop();
     }
 
-    @Test
-    public void shouldStartServer() throws Exception
+    private FTPClient getFtpClient() throws IOException
     {
         FTPClient client = new FTPClient();
         client.connect(InetAddress.getLocalHost(), PORT);
         client.login("test", "test");
+        return client;
+    }
+
+    private List<String> listFileName(FTPClient client) throws IOException
+    {
+        List<FTPFile> ftpFiles = newArrayList(client.listFiles());
+        for (FTPFile file : ftpFiles )
+        {
+            LOGGER.info("{}", file);
+        }
+
+        Collection<FTPFile> files = filter(ftpFiles, new Predicate<FTPFile>(){
+            public boolean apply (FTPFile input)
+            {
+                return input.isFile();
+            }
+        });
+
+        Collection<String> fileNames = transform(files, new Function<FTPFile, String>(){
+            public String apply(FTPFile input)
+            {
+                return input.getName();
+            }
+        });
+
+        return newArrayList(fileNames);
+    }
+
+    @Test
+    public void shouldStartServer() throws Exception
+    {
+        FTPClient client = getFtpClient();
 
         List<FTPFile> ftpFiles = newArrayList(client.listFiles());
         for (FTPFile file : ftpFiles )
@@ -103,5 +142,55 @@ public class ServerTest
         });
 
         assertThat(files.iterator().next().getName(), is("users.properties"));
+    }
+
+    @Test
+    public void shouldUploadFile() throws Exception
+    {
+        FTPClient client = getFtpClient();
+        String remote = "results.html";
+        URL resultsFile = getClass().getClassLoader().getResource("data/results.html");
+        LOGGER.info("Loading results from {}", resultsFile);
+        client.storeFile(remote, resultsFile.openStream());
+        // TODO need to do something around ftp server permissions to make this work
+
+        // Should exist in target directory now
+        File outputFile = new File("target", "results.html");
+        assertThat(outputFile, fileExists());
+
+        // Should be returned by the ftp serevr list command
+        List<String> filenames = listFileName(client);
+        assertThat(filenames, hasItem("results.html"));
+    }
+
+    // TODO move this out into the common project
+    private Matcher<File> fileExists()
+    {
+        return new BaseMatcher<File>(){
+            public void describeTo(Description description)
+            {
+                description.appendText("Should exist and be a file");
+            }
+
+            @Override
+            public void describeMismatch(Object item, Description description)
+            {
+                File file = (File)item;
+                if (!file.exists())
+                {
+                    description.appendValue(file).appendText(" did not exist");
+                }
+                else if(!file.isFile())
+                {
+                    description.appendValue(file).appendText(" exists but is not a file");
+                }
+            }
+
+            public boolean matches(Object item)
+            {
+                File file = (File)item;
+                return file.exists() && file.isFile();
+            }
+        };
     }
 }
