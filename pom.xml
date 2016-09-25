@@ -12,6 +12,7 @@
         <module>ftp-server</module>
         <module>gui</module>
         <module>common</module>
+        <module>common-test</module>
     </modules>
 
     <dependencies>
