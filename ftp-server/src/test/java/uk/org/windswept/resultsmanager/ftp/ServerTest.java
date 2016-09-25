@@ -2,24 +2,15 @@ package uk.org.windswept.resultsmanager.ftp;
 
 import com.google.common.base.Function;
 import com.google.common.base.Predicate;
-import com.google.common.collect.Lists;
+import org.apache.commons.io.FileUtils;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
-import org.apache.ftpserver.ftplet.Authentication;
-import org.apache.ftpserver.ftplet.AuthenticationFailedException;
 import org.apache.ftpserver.ftplet.Authority;
-import org.apache.ftpserver.ftplet.AuthorizationRequest;
 import org.apache.ftpserver.ftplet.FtpException;
-import org.apache.ftpserver.ftplet.User;
 import org.apache.ftpserver.ftplet.UserManager;
 import org.apache.ftpserver.usermanager.PropertiesUserManagerFactory;
-import org.apache.ftpserver.usermanager.UserManagerFactory;
-import org.apache.ftpserver.usermanager.impl.AbstractUserManager;
 import org.apache.ftpserver.usermanager.impl.BaseUser;
 import org.apache.ftpserver.usermanager.impl.WritePermission;
-import org.hamcrest.BaseMatcher;
-import org.hamcrest.Description;
-import org.hamcrest.Matcher;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,7 +20,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.InetAddress;
 import java.net.URL;
 import java.util.Collection;
@@ -41,6 +31,7 @@ import static com.google.common.collect.Lists.newArrayList;
 import static com.google.common.collect.Collections2.transform;
 import static java.lang.Thread.sleep;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
@@ -54,6 +45,8 @@ public class ServerTest
     private static final Logger LOGGER = LoggerFactory.getLogger(ServerTest.class);
 
     public static final int PORT = 2222;
+
+    public static final File USER_HOME_DIRECTORY = FileUtils.getFile("target", "userWorkingDirectory");
 
     private Server server;
 
@@ -75,7 +68,7 @@ public class ServerTest
         BaseUser user = new BaseUser();
         user.setName("test");
         user.setPassword("test");
-        user.setHomeDirectory("target");
+        user.setHomeDirectory(USER_HOME_DIRECTORY.getPath());
         user.setAuthorities(createAuthorities(new WritePermission()));
 
         userManager.save(user);
@@ -90,6 +83,21 @@ public class ServerTest
         LoggingFtplet loggingFtplet = new LoggingFtplet();
         server = new Server().withUserManager(userManager).withPort(PORT).withFtplet(loggingFtplet);
         server.start();
+    }
+
+    @Before
+    public void clearWorkingDirectory() throws IOException
+    {
+        if(!USER_HOME_DIRECTORY.exists())
+        {
+            LOGGER.info("Create User Hoem Directory {}", USER_HOME_DIRECTORY);
+            assertThat("Unable to create user home directory", USER_HOME_DIRECTORY.mkdirs(), is(true));
+        }
+        else
+        {
+            LOGGER.info("Clear User Home Directory {}", USER_HOME_DIRECTORY);
+            FileUtils.cleanDirectory(USER_HOME_DIRECTORY);
+        }
     }
 
     @After
@@ -149,7 +157,7 @@ public class ServerTest
             }
         });
 
-        assertThat(files.iterator().next().getName(), is("users.properties"));
+        assertThat(files, empty());
     }
 
     @Test
