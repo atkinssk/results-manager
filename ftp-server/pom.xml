@@ -25,6 +25,11 @@
             <version>3.5</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>uk.org.windswept.results.manager</groupId>
+            <artifactId>results-manager-common</artifactId>
+            <version>${project.version}</version>
+        </dependency>
 
     </dependencies>
 

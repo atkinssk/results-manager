@@ -14,12 +14,15 @@ import org.apache.ftpserver.usermanager.PropertiesUserManagerFactory;
 import org.apache.ftpserver.usermanager.UserManagerFactory;
 import org.apache.ftpserver.usermanager.impl.AbstractUserManager;
 import org.apache.ftpserver.usermanager.impl.BaseUser;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.FileWriter;
+import java.io.IOException;
 import java.net.InetAddress;
 import java.util.Collection;
 import java.util.List;
@@ -38,11 +41,13 @@ import static org.mockito.Mockito.mock;
 public class ServerTest
 {
     private static final Logger LOGGER = LoggerFactory.getLogger(ServerTest.class);
+
     public static final int PORT = 2222;
 
+    private Server server;
 
-    @Test
-    public void shouldStartServer() throws Exception
+
+    private UserManager createUserManager () throws IOException, FtpException
     {
         final File userPropertiesFile = new File("target/users.properties");
         Properties userProperties = new Properties();
@@ -58,13 +63,32 @@ public class ServerTest
         user.setHomeDirectory("target");
 
         userManager.save(user);
+        return userManager;
+    }
 
-        Server server = new Server().withUserManager(userManager).withPort(PORT);
+    @Before
+    public void startServer () throws IOException, FtpException
+    {
+        UserManager userManager = createUserManager();
+
+        LoggingFtplet loggingFtplet = new LoggingFtplet();
+        server = new Server().withUserManager(userManager).withPort(PORT).withFtplet(loggingFtplet);
         server.start();
+    }
 
+    @After
+    public void stopServer ()
+    {
+        server.stop();
+    }
+
+    @Test
+    public void shouldStartServer() throws Exception
+    {
         FTPClient client = new FTPClient();
         client.connect(InetAddress.getLocalHost(), PORT);
         client.login("test", "test");
+
         List<FTPFile> ftpFiles = newArrayList(client.listFiles());
         for (FTPFile file : ftpFiles )
         {
@@ -79,7 +103,5 @@ public class ServerTest
         });
 
         assertThat(files.iterator().next().getName(), is("users.properties"));
-
-        server.stop();
     }
 }

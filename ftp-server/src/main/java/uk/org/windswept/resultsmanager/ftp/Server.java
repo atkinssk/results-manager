@@ -3,6 +3,7 @@ package uk.org.windswept.resultsmanager.ftp;
 import org.apache.ftpserver.FtpServer;
 import org.apache.ftpserver.FtpServerFactory;
 import org.apache.ftpserver.ftplet.FtpException;
+import org.apache.ftpserver.ftplet.Ftplet;
 import org.apache.ftpserver.ftplet.UserManager;
 import org.apache.ftpserver.listener.ListenerFactory;
 import org.slf4j.Logger;
@@ -64,5 +65,11 @@ public class Server
             LOGGER.info("Stopping FTP server");
             server.stop();
         }
+    }
+
+    public Server withFtplet (Ftplet ftplet)
+    {
+        serverFactory.getFtplets().put(ftplet.getClass().getCanonicalName(), ftplet);
+        return this;
     }
 }
