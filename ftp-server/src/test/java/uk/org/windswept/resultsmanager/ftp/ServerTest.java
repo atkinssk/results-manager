@@ -148,17 +148,21 @@ public class ServerTest
     public void shouldUploadFile() throws Exception
     {
         FTPClient client = getFtpClient();
+        String pwd = client.printWorkingDirectory();
+        LOGGER.info("pwd:{}", pwd);
+
+
         String remote = "results.html";
         URL resultsFile = getClass().getClassLoader().getResource("data/results.html");
         LOGGER.info("Loading results from {}", resultsFile);
-        client.storeFile(remote, resultsFile.openStream());
+        assertThat(client.storeFile(remote, resultsFile.openStream()), is(true));
         // TODO need to do something around ftp server permissions to make this work
 
         // Should exist in target directory now
         File outputFile = new File("target", "results.html");
         assertThat(outputFile, fileExists());
 
-        // Should be returned by the ftp serevr list command
+        // Should be returned by the ftp server list command
         List<String> filenames = listFileName(client);
         assertThat(filenames, hasItem("results.html"));
     }
