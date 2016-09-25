@@ -174,7 +174,7 @@ public class ServerTest
         assertThat(client.storeFile(remote, resultsFile.openStream()), is(true));
 
         // Should exist in target directory now
-        File outputFile = new File("target", "results.html");
+        File outputFile = new File(USER_HOME_DIRECTORY, "results.html");
         assertThat(outputFile, fileExists());
 
         // Should be returned by the ftp server list command
