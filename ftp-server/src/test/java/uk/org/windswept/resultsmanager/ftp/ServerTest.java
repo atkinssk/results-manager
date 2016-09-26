@@ -112,106 +112,55 @@ public class ServerTest
         server.stop();
     }
 
-    private FTPClient getFtpClient() throws IOException
+    private FtpClientHelper getFtpClientHelper() throws IOException
     {
-        FTPClient client = new FTPClient();
-        client.connect(InetAddress.getLocalHost(), PORT);
-        client.login("test", "test");
-        return client;
-    }
-
-    private List<String> listFileName(FTPClient client) throws IOException
-    {
-        return listFileName(client, null);
-    }
-
-    private List<String> listFileName(FTPClient client, String path) throws IOException
-    {
-        List<FTPFile> ftpFiles = newArrayList(client.listFiles(path));
-        for (FTPFile file : ftpFiles )
-        {
-            LOGGER.info("{}", file);
-        }
-
-        Collection<FTPFile> files = filter(ftpFiles, new Predicate<FTPFile>(){
-            public boolean apply (FTPFile input)
-            {
-                return input.isFile();
-            }
-        });
-
-        Collection<String> fileNames = transform(files, new Function<FTPFile, String>(){
-            public String apply(FTPFile input)
-            {
-                return input.getName();
-            }
-        });
-
-        return newArrayList(fileNames);
+        return new FtpClientHelper(InetAddress.getLocalHost(), PORT, "test", "test");
     }
 
     @Test
     public void shouldStartServer() throws Exception
     {
-        FTPClient client = getFtpClient();
-
-        List<FTPFile> ftpFiles = newArrayList(client.listFiles());
-        for (FTPFile file : ftpFiles )
-        {
-            LOGGER.info("{}", file);
-        }
-
-        Collection<FTPFile> files = filter(ftpFiles, new Predicate<FTPFile>(){
-            public boolean apply (FTPFile input)
-            {
-                return input.isFile();
-            }
-        });
-
+        FtpClientHelper client = getFtpClientHelper();
+        List<String> files = client.listFileNames();
         assertThat(files, empty());
     }
 
     @Test
     public void shouldUploadFileToUserHomeDirectory() throws Exception
     {
-        FTPClient client = getFtpClient();
-        String pwd = client.printWorkingDirectory();
-        LOGGER.info("pwd:{}", pwd);
-
+        FtpClientHelper client = getFtpClientHelper();
 
         String remote = "results.html";
         URL resultsFile = getClass().getClassLoader().getResource("data/results.html");
         LOGGER.info("Loading results from {}", resultsFile);
-        assertThat(client.storeFile(remote, resultsFile.openStream()), is(true));
+        assertThat(client.storeFile(resultsFile, remote), is(true));
 
         // Should exist in target directory now
         File outputFile = new File(USER_HOME_DIRECTORY, remote);
         assertThat(outputFile, fileExists());
 
         // Should be returned by the ftp server list command
-        List<String> filenames = listFileName(client);
+        List<String> filenames = client.listFileNames();
         assertThat(filenames, hasItem("results.html"));
     }
 
     @Test
     public void shouldUploadFileToSubDirectory() throws Exception
     {
-        FTPClient client = getFtpClient();
-        String pwd = client.printWorkingDirectory();
-        LOGGER.info("pwd:{}", pwd);
+        FtpClientHelper client = getFtpClientHelper();
 
         String remoteDir = "2016/DinghyRegatta";
         String remote = remoteDir + "/results.html";
         URL resultsFile = getClass().getClassLoader().getResource("data/results.html");
         LOGGER.info("Loading results from {}", resultsFile);
-        assertThat(client.storeFile(remote, resultsFile.openStream()), is(true));
+        assertThat(client.storeFile(resultsFile, remote), is(true));
 
         // Should exist in target directory now
         File outputFile = new File(USER_HOME_DIRECTORY, remote);
         assertThat(outputFile, fileExists());
 
         // Should be returned by the ftp server list command
-        List<String> filenames = listFileName(client, remoteDir);
+        List<String> filenames = client.listFileNames(remoteDir);
         assertThat(filenames, hasItem("results.html"));
     }
 
