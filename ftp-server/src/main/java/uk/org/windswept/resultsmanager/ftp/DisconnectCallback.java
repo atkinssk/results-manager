@@ -5,5 +5,5 @@ package uk.org.windswept.resultsmanager.ftp;
  */
 public interface DisconnectCallback
 {
-    void disconnect();
+    void onDisconnect();
 }

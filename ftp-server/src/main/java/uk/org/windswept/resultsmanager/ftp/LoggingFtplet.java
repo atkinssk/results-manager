@@ -15,6 +15,8 @@ public class LoggingFtplet extends DefaultFtplet
     private static final Logger LOGGER = LoggerFactory.getLogger(LoggingFtplet.class);
     private DisconnectCallback disconnectCallback;
 
+    private Object disconnectSemaphore = new Object();
+
     public LoggingFtplet ()
     {
         super();
@@ -46,7 +48,7 @@ public class LoggingFtplet extends DefaultFtplet
     public FtpletResult onDisconnect (FtpSession session) throws FtpException, IOException
     {
         LOGGER.info("onDisconnect session:{}", new ToString(session));
-        disconnectCallback.disconnect();
+        fireNotify(disconnectSemaphore);
         return super.onDisconnect(session);
     }
 
@@ -191,9 +193,20 @@ public class LoggingFtplet extends DefaultFtplet
         return super.onSite(session, request);
     }
 
-    public void withDisconnectCallback (DisconnectCallback disconnectCallback)
+    private void fireNotify(Object semaphore)
     {
-        // TODO make this handle a list of callbacks
-        this.disconnectCallback = disconnectCallback;
+        synchronized(semaphore)
+        {
+            semaphore.notify();
+        }
     }
+
+    public void waitForDisconnect() throws InterruptedException
+    {
+        synchronized(disconnectSemaphore)
+        {
+            disconnectSemaphore.wait();
+        }
+    }
+
 }

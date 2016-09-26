@@ -83,7 +83,11 @@ public class ServerTest
         UserManager userManager = createUserManager();
 
         loggingFtplet = new LoggingFtplet();
-        server = new Server().withUserManager(userManager).withPort(PORT).withFtplet(loggingFtplet);
+        server = new Server().
+                withUserManager(userManager).
+                withPort(PORT).
+                withFtplet(loggingFtplet).
+                withCallbackFtplet();
         server.start();
     }
 
@@ -118,7 +122,12 @@ public class ServerTest
 
     private List<String> listFileName(FTPClient client) throws IOException
     {
-        List<FTPFile> ftpFiles = newArrayList(client.listFiles());
+        return listFileName(client, null);
+    }
+
+    private List<String> listFileName(FTPClient client, String path) throws IOException
+    {
+        List<FTPFile> ftpFiles = newArrayList(client.listFiles(path));
         for (FTPFile file : ftpFiles )
         {
             LOGGER.info("{}", file);
@@ -163,7 +172,7 @@ public class ServerTest
     }
 
     @Test
-    public void shouldUploadFile() throws Exception
+    public void shouldUploadFileToUserHomeDirectory() throws Exception
     {
         FTPClient client = getFtpClient();
         String pwd = client.printWorkingDirectory();
@@ -176,7 +185,7 @@ public class ServerTest
         assertThat(client.storeFile(remote, resultsFile.openStream()), is(true));
 
         // Should exist in target directory now
-        File outputFile = new File(USER_HOME_DIRECTORY, "results.html");
+        File outputFile = new File(USER_HOME_DIRECTORY, remote);
         assertThat(outputFile, fileExists());
 
         // Should be returned by the ftp server list command
@@ -185,27 +194,33 @@ public class ServerTest
     }
 
     @Test
+    public void shouldUploadFileToSubDirectory() throws Exception
+    {
+        FTPClient client = getFtpClient();
+        String pwd = client.printWorkingDirectory();
+        LOGGER.info("pwd:{}", pwd);
+
+        String remoteDir = "2016/DinghyRegatta";
+        String remote = remoteDir + "/results.html";
+        URL resultsFile = getClass().getClassLoader().getResource("data/results.html");
+        LOGGER.info("Loading results from {}", resultsFile);
+        assertThat(client.storeFile(remote, resultsFile.openStream()), is(true));
+
+        // Should exist in target directory now
+        File outputFile = new File(USER_HOME_DIRECTORY, remote);
+        assertThat(outputFile, fileExists());
+
+        // Should be returned by the ftp server list command
+        List<String> filenames = listFileName(client, remoteDir);
+        assertThat(filenames, hasItem("results.html"));
+    }
+
+    @Test
     @Ignore("This is only for investigation")
     public void shouldWaitForDisconnect() throws InterruptedException
     {
-        final Object done = new Object();
-        DisconnectCallback callback = new DisconnectCallback()
-        {
-            public void disconnect ()
-            {
-                synchronized (done)
-                {
-                    done.notify();
-                }
-            }
-        };
-        loggingFtplet.withDisconnectCallback(callback);
-
         LOGGER.info("Waiting for disconnect callback");
-        synchronized(done)
-        {
-            done.wait();
-        }
+        loggingFtplet.waitForDisconnect();
     }
 
 }

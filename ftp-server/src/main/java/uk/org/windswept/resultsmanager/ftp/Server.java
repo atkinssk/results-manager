@@ -1,5 +1,6 @@
 package uk.org.windswept.resultsmanager.ftp;
 
+import org.apache.commons.io.FileUtils;
 import org.apache.ftpserver.FtpServer;
 import org.apache.ftpserver.FtpServerFactory;
 import org.apache.ftpserver.ftplet.FtpException;
@@ -8,6 +9,9 @@ import org.apache.ftpserver.ftplet.UserManager;
 import org.apache.ftpserver.listener.ListenerFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.io.IOException;
 
 /**
  * Created by 802998369 on 20/09/2016.
@@ -72,4 +76,29 @@ public class Server
         serverFactory.getFtplets().put(ftplet.getClass().getCanonicalName(), ftplet);
         return this;
     }
+
+    public Server withCallbackFtplet()
+    {
+        CallbackFtplet ftplet = new CallbackFtplet();
+        ftplet.addUploadStartCallback((userHomeDirectory, path) -> onUploadStart(userHomeDirectory, path));
+        serverFactory.getFtplets().put(ftplet.getClass().getCanonicalName(), ftplet);
+        return this;
+    }
+
+    private void onUploadStart(String userHomeDirectory, String path)
+    {
+        File file = new File (userHomeDirectory, path);
+        LOGGER.info("onUploadStart userHomeDirectory:{} path:{}", userHomeDirectory, path);
+        final File directory = file.getParentFile();
+        LOGGER.info("Attempting to create directory:{}", directory);
+        try
+        {
+            FileUtils.forceMkdir(directory);
+        }
+        catch (IOException e)
+        {
+            LOGGER.error("Problem creating directory:{}", directory);
+        }
+    }
+
 }
