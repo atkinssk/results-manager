@@ -3,6 +3,7 @@ package uk.org.windswept.resultsmanager.ftp;
 import org.apache.commons.io.FileUtils;
 import org.apache.ftpserver.FtpServer;
 import org.apache.ftpserver.FtpServerFactory;
+import org.apache.ftpserver.ftplet.FileSystemFactory;
 import org.apache.ftpserver.ftplet.FtpException;
 import org.apache.ftpserver.ftplet.Ftplet;
 import org.apache.ftpserver.ftplet.UserManager;
@@ -44,6 +45,12 @@ public class Server
         ListenerFactory listenerFactory = new ListenerFactory();
         listenerFactory.setPort(port);
         serverFactory.addListener("default", listenerFactory.createListener());
+        return this;
+    }
+
+    public Server withFileSystemFactory(FileSystemFactory fileSystemFactory)
+    {
+        serverFactory.setFileSystem(fileSystemFactory);
         return this;
     }
 
