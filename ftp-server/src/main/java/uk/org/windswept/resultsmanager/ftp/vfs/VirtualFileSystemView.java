@@ -65,6 +65,7 @@ public class VirtualFileSystemView implements FileSystemView
     public FtpFile getFile(String name) throws FtpException
     {
         LOGGER.info("getFile name:{}", name);
+        // TODO need to split into directories and navigate down
 
         VfsFile file;
         if (name.equals("./"))

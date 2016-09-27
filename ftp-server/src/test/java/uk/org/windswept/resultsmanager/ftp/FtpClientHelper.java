@@ -4,6 +4,7 @@ import com.google.common.base.Function;
 import com.google.common.base.Predicate;
 import org.apache.commons.net.ftp.FTPClient;
 import org.apache.commons.net.ftp.FTPFile;
+import org.apache.commons.net.ftp.FTPReply;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -84,5 +85,13 @@ public class FtpClientHelper
     public boolean storeFile(URL local, String remote) throws IOException
     {
         return client.storeFile(remote, local.openStream());
+    }
+
+    public boolean mkdir (String directoryName) throws IOException
+    {
+        LOGGER.info("mkdir directoryName:{}", directoryName);
+        int responseCode = client.mkd(directoryName);
+        LOGGER.info("responseCode:{}", responseCode);
+        return responseCode == FTPReply.COMMAND_OK;
     }
 }
