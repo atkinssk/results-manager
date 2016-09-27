@@ -1,10 +1,6 @@
 package uk.org.windswept.resultsmanager.ftp;
 
-import com.google.common.base.Function;
-import com.google.common.base.Predicate;
 import org.apache.commons.io.FileUtils;
-import org.apache.commons.net.ftp.FTPClient;
-import org.apache.commons.net.ftp.FTPFile;
 import org.apache.ftpserver.ftplet.Authority;
 import org.apache.ftpserver.ftplet.FtpException;
 import org.apache.ftpserver.ftplet.UserManager;
@@ -23,20 +19,17 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.net.InetAddress;
 import java.net.URL;
-import java.util.Collection;
 import java.util.List;
 import java.util.Properties;
 
-import static com.google.common.collect.Collections2.filter;
 import static com.google.common.collect.Lists.newArrayList;
-import static com.google.common.collect.Collections2.transform;
-import static java.lang.Thread.sleep;
+import static org.hamcrest.CoreMatchers.allOf;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.Matchers.empty;
 import static org.hamcrest.core.IsCollectionContaining.hasItem;
 import static org.junit.Assert.assertThat;
-import static org.mockito.Mockito.mock;
-import static uk.org.windswept.test.FileExistsMatcher.fileExists;
+import static uk.org.windswept.test.file.FileMatchers.exists;
+import static uk.org.windswept.test.file.FileMatchers.isFile;
 
 /**
  * Created by 802998369 on 20/09/2016.
@@ -137,7 +130,7 @@ public class ServerTest
 
         // Should exist in target directory now
         File outputFile = new File(USER_HOME_DIRECTORY, remote);
-        assertThat(outputFile, fileExists());
+        assertThat(outputFile, allOf(exists(), isFile()));
 
         // Should be returned by the ftp server list command
         List<String> filenames = client.listFileNames();
@@ -157,7 +150,7 @@ public class ServerTest
 
         // Should exist in target directory now
         File outputFile = new File(USER_HOME_DIRECTORY, remote);
-        assertThat(outputFile, fileExists());
+        assertThat(outputFile, allOf(exists(), isFile()));
 
         // Should be returned by the ftp server list command
         List<String> filenames = client.listFileNames(remoteDir);
