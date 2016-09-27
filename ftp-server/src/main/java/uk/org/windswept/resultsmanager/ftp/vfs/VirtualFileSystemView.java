@@ -16,48 +16,89 @@ public class VirtualFileSystemView implements FileSystemView
 
     private final User user;
 
+    private final VfsFile homeDirectory = VfsFile.newRootInstance();
+
+    private VfsFile workingDirectory = homeDirectory;
+
     public VirtualFileSystemView(User user)
     {
         this.user = user;
+    }
+
+    private FtpFile asVirtualFtpFile(VfsFile vfsFile)
+    {
+        FtpFile result = null;
+        if (vfsFile != null)
+        {
+            result = new VirtualFtpFile(vfsFile);
+        }
+        return result;
     }
 
     @Override
     public FtpFile getHomeDirectory() throws FtpException
     {
         LOGGER.info("getHomeDirectory");
-        return null;
+        return asVirtualFtpFile(homeDirectory);
     }
 
     @Override
     public FtpFile getWorkingDirectory() throws FtpException
     {
         LOGGER.info("getWorkingDirectory");
-        return null;
+        return asVirtualFtpFile(workingDirectory);
     }
 
     @Override
     public boolean changeWorkingDirectory(String dir) throws FtpException
     {
         LOGGER.info("changeWorkingDirectory dir:{}", dir);
-        return false;
+        VfsFile newDir = workingDirectory.getSubDirectory(dir);
+        if (newDir != null)
+        {
+            workingDirectory = newDir;
+        }
+        return newDir != null;
     }
 
     @Override
-    public FtpFile getFile(String file) throws FtpException
+    public FtpFile getFile(String name) throws FtpException
     {
-        LOGGER.info("getFile dir:{}", file);
-        return null;
+        LOGGER.info("getFile name:{}", name);
+
+        VfsFile file;
+        if (name.equals("./"))
+        {
+            LOGGER.info("working directory");
+            file = workingDirectory;
+        }
+        else
+        {
+            file = workingDirectory.getChildFile(name);
+            if (file == null)
+            {
+                LOGGER.info("Missing file {}", name);
+                // Create a link to the parent so that we can later add ourself as a child at the end of an upload
+                file = VfsFile.newMissingInstance(name, workingDirectory);
+            }
+            else
+            {
+                LOGGER.info("Exists {}", name);
+            }
+        }
+        return asVirtualFtpFile(file);
     }
 
     @Override
     public boolean isRandomAccessible() throws FtpException
     {
+        // Always say this
         return false;
     }
 
     @Override
     public void dispose()
     {
-
+        LOGGER.info("dispose");
     }
 }
