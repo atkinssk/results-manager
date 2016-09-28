@@ -119,14 +119,18 @@ public class VfsServerTest
 
         // Should be returned by the ftp server list command
         List<String> filenames = client.listFileNames();
-        // TODO include this again assertThat(filenames, hasItem("results.html"));
+        assertThat(filenames, hasItem("results.html"));
     }
 
 
     @Test
-    public void shouldMkDir()
+    @Ignore
+    public void shouldMkDir() throws IOException
     {
-        // TODO implement this
+        FtpClientHelper client = getFtpClientHelper();
+        assertThat(client.mkdir("subdir"), is(true));
+        List<String> filenames = client.listFileNames();
+        assertThat(filenames, hasItem("subdir"));
     }
 
 
@@ -138,4 +142,20 @@ public class VfsServerTest
         loggingFtplet.waitForDisconnect();
     }
 
+    @Test
+    @Ignore
+    public void shouldUploadFileToSubDirectory() throws Exception
+    {
+        FtpClientHelper client = getFtpClientHelper();
+
+        String remoteDir = "2016/DinghyRegatta";
+        String remote = remoteDir + "/results.html";
+        URL resultsFile = getClass().getClassLoader().getResource("data/results.html");
+        LOGGER.info("Loading results from {}", resultsFile);
+        assertThat(client.storeFile(resultsFile, remote), is(true));
+
+        // Should be returned by the ftp server list command
+        List<String> filenames = client.listFileNames(remoteDir);
+        assertThat(filenames, hasItem("results.html"));
+    }
 }
