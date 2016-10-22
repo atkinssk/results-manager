@@ -156,6 +156,7 @@ public class VfsServerTest
 
         // Should be returned by the ftp server list command
         List<String> filenames = client.listFileNames(remoteDir);
+        LOGGER.info("filenames:{}", filenames);
         assertThat(filenames, hasItem("results.html"));
     }
 }
